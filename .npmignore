@@ -1,0 +1,10 @@
+.idea
+node_modules
+test
+.editorconfig
+.eslintrc
+.gitignore
+.npmignore
+.babelrc
+package-lock.json
+rollup.config.mjs
