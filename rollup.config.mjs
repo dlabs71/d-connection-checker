@@ -10,7 +10,10 @@ export default [{
         {
             file: 'dist/d-connection-checker.umd.min.js',
             format: 'umd',
-            name: 'd-connection-checker'
+            name: 'd-connection-checker',
+            globals: {
+                net: "net"
+            }
         },
         {
             file: 'dist/d-connection-checker.cjs.min.js',

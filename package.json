@@ -13,7 +13,8 @@
         "test": "jasmine --reporter=jasmine-console-reporter --config=test/jasmine.json",
         "lint": "npx eslint --fix ./"
     },
-    "dependencies": {},
+    "dependencies": {
+    },
     "devDependencies": {
         "@babel/cli": "^7.19.3",
         "@babel/core": "^7.19.6",
