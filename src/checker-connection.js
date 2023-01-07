@@ -79,7 +79,7 @@ export class CheckerConnection {
     }
 
     /**
-     * Connectivity wrapper method {@see __pingServer}
+     * Connectivity wrapper method. Checking connection by host data {@see __pingServer}
      * @param hostData {HostData} - data of connection
      * @param repeat {Number} - number of connection attempts
      * @param timeout {Number} - connection timeout
@@ -123,7 +123,7 @@ export class CheckerConnection {
     }
 
     /**
-     * Connectivity wrapper method {@see __pingServer}
+     * Connectivity wrapper method. Checking connection by host id in storage {@see __pingServer}
      * @param storeId {String} - storage connection ID {@see generateId}
      * @param repeat {Number} - number of connection attempts
      * @param timeout {Number} - connection timeout
@@ -135,8 +135,8 @@ export class CheckerConnection {
     }
 
     /**
-     *
-     * @param rejectFunc
+     * Connectivity wrapper method. Checking all connections in store
+     * @param rejectFunc - callback function on connection loss event
      * @returns {Promise<unknown[]>}
      */
     checkConnections(rejectFunc = null) {
@@ -186,6 +186,10 @@ export class CheckerConnection {
         return this.storeHosts.removeHost(host.$id);
     }
 
+    /**
+     * Proxy method for getting a list of all stored connections
+     * @returns {HostData[]}
+     */
     getHosts() {
         return this.storeHosts.getHosts();
     }
@@ -210,13 +214,8 @@ export class CheckerConnectionRunner extends CheckerConnection {
 
     /**
      * Function to be called when the connection is unavailable
-     * @param host {Object} - connection data
-     * {
-     *     host: "123.123.123.123",
-     *     port: 123,
-     *     status: "ERROR",
-     *     hostId: 123
-     * }
+     * @type {Function}
+     * @param host {HostData} - connection data
      */
     /* eslint-disable-next-line */
     rejectFunc = (host) => {
