@@ -1,7 +1,10 @@
 {
     "spec_dir": "",
     "spec_files": [
-        "test/**/*-spec.js",
+        "test/spec/host-data-model-spec.js",
+        "test/spec/store-hosts-spec.js",
+        "test/spec/checker-connection-spec.js",
+        "test/spec/checker-connection-runner-spec.js",
         "!node_modules/**"
     ],
     "helpers": [

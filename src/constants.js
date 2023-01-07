@@ -1,6 +1,7 @@
 export const HOST_STATUS = {
     ERROR: 'error',
     SUCCESS: 'success',
+    READY: 'ready',
 };
 
 export const DEFAULT_REPEAT = 3;

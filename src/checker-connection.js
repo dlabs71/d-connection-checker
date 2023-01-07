@@ -34,22 +34,7 @@ export class CheckerConnection {
      */
     storeHosts = null;
 
-    /**
-     * Function to be called when the connection is unavailable
-     * @param host {Object} - connection data
-     * {
-     *     host: "123.123.123.123",
-     *     port: 123,
-     *     status: "ERROR",
-     *     hostId: 123
-     * }
-     */
-    /* eslint-disable-next-line */
-    rejectFunc = (host) => {
-    };
-
     constructor(
-        rejectFunc,
         logger = console,
         defaultRepeat = DEFAULT_REPEAT,
         pingDefaultTimeout = DEFAULT_PING_TIMEOUT,
@@ -57,28 +42,14 @@ export class CheckerConnection {
         this.defaultRepeat = defaultRepeat;
         this.pingDefaultTimeout = pingDefaultTimeout;
         this.$log = logger;
-        this.rejectFunc = rejectFunc;
         this.storeHosts = new StoreHosts(logger);
-    }
-
-    /**
-     * Class initialization method
-     * @param hosts {Array} - list of connections to check
-     * @param rejectFunc {Function} - callback function when connection is unavailable
-     */
-    init(hosts = [], rejectFunc = null) {
-        this.$log.debug('checker-connection: init: hosts=', hosts);
-        this.storeHosts.setHosts(hosts);
-        if (rejectFunc) {
-            this.rejectFunc = rejectFunc;
-        }
     }
 
     /**
      * Connectivity test method
      * @param host {String} - IP connections
      * @param port {Number} - connection port
-     * @param timeout {Number} - connection timeout
+     * @param timeout {Number} - connection timeout (ms)
      * @returns {Promise<unknown>}
      * @private
      */
@@ -109,13 +80,12 @@ export class CheckerConnection {
 
     /**
      * Connectivity wrapper method {@see __pingServer}
-     * @param host {String} - IP connections
-     * @param port {Number} - connection port
+     * @param hostData {HostData} - data of connection
      * @param repeat {Number} - number of connection attempts
      * @param timeout {Number} - connection timeout
      * @returns {Promise<unknown>}
      */
-    checkConnection(host, port, repeat = null, timeout = null) {
+    checkConnectionByHost(hostData, repeat = null, timeout = null) {
         if (!repeat && repeat !== 0) {
             repeat = this.defaultRepeat;
         }
@@ -123,27 +93,24 @@ export class CheckerConnection {
             timeout = this.pingDefaultTimeout;
         }
         this.$log.debug(`checker-connection: checkConnection:
-                            repeat=${host};
-                            port=${port};
+                            hostData=${hostData};
                             timeout=${timeout};
                             repeat=${repeat}
                             `);
         return new Promise((resolve, reject) => {
-            this.__pingServer(host, port, timeout)
+            this.__pingServer(hostData.host, hostData.port, timeout)
                 .then(() => {
                     resolve();
                 })
                 .catch(() => {
-                    const storeHostId = this.storeHosts.generateId({ host, port });
-                    const hostData = this.storeHosts.getHost(storeHostId);
-                    if (hostData.status !== HOST_STATUS.SUCCESS) {
+                    if (hostData.$status === HOST_STATUS.ERROR) {
                         resolve();
                         return;
                     }
                     if (repeat === 0) {
                         reject();
                     } else {
-                        this.checkConnection(host, port, repeat - 1, timeout / 2)
+                        this.checkConnectionByHost(hostData, repeat - 1, timeout / 2)
                             .then((res) => {
                                 resolve(res);
                             })
@@ -156,55 +123,71 @@ export class CheckerConnection {
     }
 
     /**
-     * Connectivity check Promise list method {@see checkConnection} from the list of stored connections
-     * @returns {*[]}
+     * Connectivity wrapper method {@see __pingServer}
+     * @param storeId {String} - storage connection ID {@see generateId}
+     * @param repeat {Number} - number of connection attempts
+     * @param timeout {Number} - connection timeout
+     * @returns {Promise<unknown>}
      */
-    createCheckConnPromises() {
+    checkConnectionById(storeId, repeat = null, timeout = null) {
+        const hostData = this.storeHosts.getHost(storeId);
+        return this.checkConnectionByHost(hostData, repeat, timeout);
+    }
+
+    /**
+     *
+     * @param rejectFunc
+     * @returns {Promise<unknown[]>}
+     */
+    checkConnections(rejectFunc = null) {
+        if (!rejectFunc) {
+            /* eslint-disable-next-line */
+            rejectFunc = (host) => {
+            };
+        }
+
         const promises = [];
-        Array.from(this.storeHosts.getHosts()).forEach((item) => {
-            if (!item.status || item.status === HOST_STATUS.SUCCESS) {
-                promises.push(this.checkConnection(item.host, item.port).catch(() => {
-                    const storeHostId = this.storeHosts.generateId(item);
-                    this.storeHosts.setStatusHost(storeHostId, HOST_STATUS.ERROR);
-                    this.rejectFunc(item);
-                }));
+        Array.from(this.getHosts()).forEach((item) => {
+            if ([HOST_STATUS.SUCCESS, HOST_STATUS.READY].includes(item.$status)) {
+                promises.push(this.checkConnectionByHost(item)
+                    .then(() => {
+                        this.storeHosts.setStatusHost(item.$id, HOST_STATUS.SUCCESS);
+                    })
+                    .catch(() => {
+                        this.storeHosts.setStatusHost(item.$id, HOST_STATUS.ERROR);
+                        rejectFunc(item);
+                    }));
             }
         });
-        return promises;
+        return Promise.all(promises);
     }
 
     /**
      * Proxy method for establishing connections in storage
-     * @param hosts {Array} - connection list
+     * @param hosts {HostData[]} - connection list
      */
     setHosts(hosts = []) {
-        this.storeHosts.setHosts(hosts);
+        return this.storeHosts.setHosts(hosts);
     }
 
     /**
      * Proxy method for adding a new connection to storage
-     * @param host {Object} - connection information
-     * {
-     *     host: "123.123.123.123",
-     *     port: 123,
-     *     hostId: 123
-     * }
+     * @param host {HostData} - connection information
      */
     addHost(host) {
-        this.storeHosts.addHost(host);
+        return this.storeHosts.addHost(host);
     }
 
     /**
      * Proxy method for deleting a connection from storage
-     * @param host {Object} - connection information
-     * {
-     *     host: "123.123.123.123",
-     *     port: 123,
-     *     hostId: 123
-     * }
+     * @param host {HostData} - connection information
      */
     removeHost(host) {
-        this.storeHosts.removeHost(host);
+        return this.storeHosts.removeHost(host.$id);
+    }
+
+    getHosts() {
+        return this.storeHosts.getHosts();
     }
 }
 
@@ -225,6 +208,20 @@ export class CheckerConnectionRunner extends CheckerConnection {
      */
     runTimeout = DEFAULT_RUN_TIMEOUT;
 
+    /**
+     * Function to be called when the connection is unavailable
+     * @param host {Object} - connection data
+     * {
+     *     host: "123.123.123.123",
+     *     port: 123,
+     *     status: "ERROR",
+     *     hostId: 123
+     * }
+     */
+    /* eslint-disable-next-line */
+    rejectFunc = (host) => {
+    };
+
     constructor(
         rejectFunc,
         logger = console,
@@ -232,8 +229,9 @@ export class CheckerConnectionRunner extends CheckerConnection {
         pingDefaultTimeout = DEFAULT_PING_TIMEOUT,
         runTimeout = DEFAULT_RUN_TIMEOUT,
     ) {
-        super(rejectFunc, logger, defaultRepeat, pingDefaultTimeout);
+        super(logger, defaultRepeat, pingDefaultTimeout);
         this.runTimeout = runTimeout;
+        this.rejectFunc = rejectFunc;
     }
 
     /**
@@ -243,7 +241,7 @@ export class CheckerConnectionRunner extends CheckerConnection {
      */
     _checkConnections() {
         return new Promise((resolve) => {
-            Promise.all(this.createCheckConnPromises())
+            this.checkConnections(this.rejectFunc)
                 .finally(() => {
                     resolve();
                 });
