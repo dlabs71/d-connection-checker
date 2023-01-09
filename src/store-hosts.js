@@ -82,9 +82,8 @@ export class StoreHosts {
      * @param status {String} - connection status {@see HOST_STATUS}
      */
     setStatusHost(storeId, status) {
-        const storedHost = this.hosts[storeId];
-        if (storedHost) {
-            storedHost.$status = status;
+        if (this.hosts[storeId]) {
+            this.hosts[storeId].$status = status;
         }
     }
 }

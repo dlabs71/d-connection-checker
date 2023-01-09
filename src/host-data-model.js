@@ -13,14 +13,17 @@ export class HostData {
 
     port = null;
 
-    constructor(host, port) {
+    addedData = {};
+
+    constructor(host, port, addedData = {}) {
         this.host = host;
         this.port = port;
         this.$id = generateId(host, port);
         this.$status = HOST_STATUS.READY;
+        this.addedData = addedData;
     }
 
-    static build(host, port) {
-        return new HostData(host, port);
+    static build(host, port, addedData = {}) {
+        return new HostData(host, port, addedData);
     }
 }

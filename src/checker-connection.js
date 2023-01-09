@@ -103,10 +103,6 @@ export class CheckerConnection {
                     resolve();
                 })
                 .catch(() => {
-                    if (hostData.$status === HOST_STATUS.ERROR) {
-                        resolve();
-                        return;
-                    }
                     if (repeat === 0) {
                         reject();
                     } else {
@@ -148,7 +144,7 @@ export class CheckerConnection {
 
         const promises = [];
         Array.from(this.getHosts()).forEach((item) => {
-            if ([HOST_STATUS.SUCCESS, HOST_STATUS.READY].includes(item.$status)) {
+            if (item.$status !== HOST_STATUS.ERROR) {
                 promises.push(this.checkConnectionByHost(item)
                     .then(() => {
                         this.storeHosts.setStatusHost(item.$id, HOST_STATUS.SUCCESS);
