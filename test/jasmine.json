@@ -1,0 +1,16 @@
+{
+    "spec_dir": "",
+    "spec_files": [
+        "test/spec/host-data-model-spec.js",
+        "test/spec/store-hosts-spec.js",
+        "test/spec/checker-connection-spec.js",
+        "test/spec/checker-connection-runner-spec.js",
+        "!node_modules/**"
+    ],
+    "helpers": [
+        "node_modules/@babel/register/lib/index.js",
+        "test/helpers/*.js"
+    ],
+    "stopSpecOnExpectationFailure": false,
+    "random": false
+}
